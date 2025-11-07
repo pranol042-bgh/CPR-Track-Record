@@ -119,12 +119,13 @@ const appReducer = (state: AppState, action: Action): AppState => {
         case EventType.AMIODARONE_ADMINISTERED:
           newState.summaryCounts.amiodarone += 1;
           break;
-        case EventType.OTHER_MEDICATION:
-          if(details){
-            const medName = details.split(' ')[0];
+        case EventType.OTHER_MEDICATION: {
+          const medName = action.payload.medicationName || (details ? details.split(' ')[0] : 'Unknown');
+          if (medName !== 'Unknown') {
             newState.summaryCounts.otherMedications[medName] = (newState.summaryCounts.otherMedications[medName] || 0) + 1;
           }
           break;
+        }
         case EventType.RHYTHM_CHECK_ROSC:
         case EventType.RHYTHM_CHECK_PULSELESS:
           newState.showRhythmAlert = false;
@@ -252,6 +253,7 @@ const EventRecording: React.FC<{ dispatch: React.Dispatch<Action> }> = ({ dispat
         <button onClick={() => dispatch({ type: 'OPEN_MODAL', payload: { type: 'medication', prefill: { name: 'Epinephrine', dose: '1mg IV Push', eventType: EventType.EPINEPHRINE_ADMINISTERED } } })} className="bg-brand-accent-blue hover:opacity-90 w-full transition-opacity text-white font-bold py-3 px-4 rounded-lg flex items-center justify-between"><div className="flex items-center"><SyringeIcon className="h-5 w-5 mr-3"/>Epinephrine</div> <span className="bg-blue-800 text-xs font-bold px-2 py-1 rounded">1mg</span></button>
         <button onClick={() => dispatch({ type: 'OPEN_MODAL', payload: { type: 'medication', prefill: { name: 'Amiodarone', dose: '300mg IV Push', eventType: EventType.AMIODARONE_ADMINISTERED } } })} className="bg-brand-accent-purple hover:opacity-90 w-full transition-opacity text-white font-bold py-3 px-4 rounded-lg flex items-center justify-between"><div className="flex items-center"><SyringeIcon className="h-5 w-5 mr-3"/>Amiodarone</div> <span className="bg-purple-800 text-xs font-bold px-2 py-1 rounded">300mg</span></button>
         <button onClick={() => dispatch({ type: 'OPEN_MODAL', payload: { type: 'medication', prefill: { name: 'Amiodarone', dose: '150mg IV Push', eventType: EventType.AMIODARONE_ADMINISTERED } } })} className="bg-brand-accent-purple hover:opacity-90 w-full transition-opacity text-white font-bold py-3 px-4 rounded-lg flex items-center justify-between"><div className="flex items-center"><SyringeIcon className="h-5 w-5 mr-3"/>Amiodarone</div> <span className="bg-purple-800 text-xs font-bold px-2 py-1 rounded">150mg</span></button>
+        <button onClick={() => dispatch({ type: 'OPEN_MODAL', payload: { type: 'medication', prefill: { name: '50% Glucose', dose: '50ml IV Push', eventType: EventType.OTHER_MEDICATION } } })} className="bg-brand-accent-yellow hover:opacity-90 w-full transition-opacity text-brand-dark font-bold py-3 px-4 rounded-lg flex items-center justify-between"><div className="flex items-center"><SyringeIcon className="h-5 w-5 mr-3"/>50% Glucose</div> <span className="bg-yellow-800 text-yellow-100 text-xs font-bold px-2 py-1 rounded">50ml</span></button>
         <button onClick={() => dispatch({type: 'OPEN_MODAL', payload: {type: 'medication'}})} className="bg-brand-subtle hover:opacity-90 w-full transition-opacity text-slate-200 font-bold py-3 px-4 rounded-lg flex items-center justify-center mt-2"><PlusIcon className="h-5 w-5 mr-2"/> Other Medication</button>
       </div>
        <button onClick={() => dispatch({type: 'UNDO_LAST_ACTION'})} className="bg-brand-subtle hover:opacity-90 w-full transition-opacity text-slate-200 font-bold py-3 px-4 rounded-lg flex items-center justify-center mt-4"><ArrowUturnLeftIcon className="h-5 w-5 mr-2"/> Undo Last Action</button>
@@ -323,16 +325,29 @@ const SummaryCounts: React.FC<{ counts: AppState['summaryCounts'], lastShockEner
     </Card>
 );
 
-const TimerDisplay: React.FC<{ label: string, time: number | null, active: boolean, nextLabel?: string }> = ({ label, time, active, nextLabel }) => (
-    <Card className="items-center justify-center text-center">
-        <p className="text-slate-400 text-sm mb-1">{label}</p>
-        <p className={`text-4xl font-mono font-bold ${active ? 'text-white' : 'text-slate-500'}`}>
-            {time !== null ? formatTimeSecondary(time) : '--:--'}
-        </p>
-        {nextLabel && <p className={`text-xs mt-1 ${active ? 'text-slate-300' : 'text-slate-600'}`}>{nextLabel}</p>}
-        {active && <div className="flex items-center text-green-400 text-xs mt-2"><div className="h-2 w-2 bg-green-400 rounded-full mr-1.5 animate-pulse"></div>Active</div>}
-    </Card>
-);
+const TimerDisplay: React.FC<{ label: string, time: number | null, active: boolean, nextLabel?: string, pulseColor?: string }> = ({ label, time, active, nextLabel, pulseColor }) => {
+    const isCritical = active && time !== null && time <= 30;
+    
+    const timeClassName = `text-4xl font-mono font-bold transition-colors ${
+        isCritical && pulseColor
+        ? `${pulseColor} animate-pulse`
+        : active
+        ? 'text-white'
+        : 'text-slate-500'
+    }`;
+    
+    return (
+        <Card className="items-center justify-center text-center">
+            <p className="text-slate-400 text-sm mb-1">{label}</p>
+            <p className={timeClassName}>
+                {time !== null ? formatTimeSecondary(time) : '--:--'}
+            </p>
+            {nextLabel && <p className={`text-xs mt-1 ${active ? 'text-slate-300' : 'text-slate-600'}`}>{nextLabel}</p>}
+            {active && !isCritical && <div className="flex items-center text-green-400 text-xs mt-2"><div className="h-2 w-2 bg-green-400 rounded-full mr-1.5 animate-pulse"></div>Active</div>}
+            {isCritical && <div className="flex items-center text-yellow-400 text-xs mt-2"><div className={`h-2 w-2 ${pulseColor?.replace('text-', 'bg-')} rounded-full mr-1.5 animate-ping`}></div>Critical</div>}
+        </Card>
+    );
+};
 
 const CurrentStatus: React.FC = () => (
     <Card title="Current Status">
@@ -399,7 +414,7 @@ const Modal: React.FC<{
             ? `${medicationName} ${medicationDose}` 
             : medicationDose;
         
-        dispatch({ type: 'LOG_EVENT', payload: { type: eventType, details: details, actor: 'By: Nurse Casey' } });
+        dispatch({ type: 'LOG_EVENT', payload: { type: eventType, details: details, actor: 'By: Nurse Casey', medicationName: medicationName } });
         handleClose();
     };
 
@@ -484,8 +499,8 @@ const CodeScreen: React.FC<{ state: AppState, dispatch: React.Dispatch<Action> }
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <TimerDisplay label="RHYTHM CHECK" time={state.timers.rhythmCheck} active={state.timers.rhythmCheck !== null} nextLabel={state.timers.rhythmCheck !== null ? `Next in ${formatTimeSecondary(state.timers.rhythmCheck)}` : ''}/>
-                <TimerDisplay label="EPINEPHRINE" time={state.timers.epinephrine} active={state.timers.epinephrine !== null} nextLabel={state.timers.epinephrine !== null ? `Next dose in ${formatTimeSecondary(state.timers.epinephrine)}` : ''}/>
+                <TimerDisplay label="RHYTHM CHECK" time={state.timers.rhythmCheck} active={state.timers.rhythmCheck !== null} nextLabel={state.timers.rhythmCheck !== null ? `Next in ${formatTimeSecondary(state.timers.rhythmCheck)}` : ''} pulseColor="text-yellow-400" />
+                <TimerDisplay label="EPINEPHRINE" time={state.timers.epinephrine} active={state.timers.epinephrine !== null} nextLabel={state.timers.epinephrine !== null ? `Next dose in ${formatTimeSecondary(state.timers.epinephrine)}` : ''} pulseColor="text-blue-400" />
             </div>
             
             <SummaryCounts counts={state.summaryCounts} lastShockEnergy={state.lastShockEnergy} />
@@ -536,6 +551,14 @@ const StartScreen: React.FC<{ onStart: () => void, onLoadState: (state: AppState
         }
     };
 
+    const canResume = previousStateStatus === 'active';
+    const canReview = previousStateStatus === 'review';
+    const hasPreviousSession = canResume || canReview;
+
+    const buttonText = canResume ? 'Resume Code' : 'Review Last Code';
+    const buttonColor = canResume ? 'bg-brand-accent-blue' : 'bg-brand-subtle';
+
+
     return (
         <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
             <HeartbeatIcon className="h-24 w-24 text-brand-accent-red mb-4"/>
@@ -547,18 +570,15 @@ const StartScreen: React.FC<{ onStart: () => void, onLoadState: (state: AppState
                 <button onClick={onStart} className="bg-brand-accent-green hover:opacity-90 transition-opacity text-white font-bold py-4 px-8 rounded-lg text-2xl flex items-center justify-center">
                     <PlayIcon className="h-8 w-8 mr-3"/> Start New Code
                 </button>
-                {previousStateStatus === 'active' &&
-                    <button onClick={handleAction} className="bg-brand-accent-blue hover:opacity-90 transition-opacity text-white font-bold py-4 px-8 rounded-lg text-2xl flex items-center justify-center">
-                        Resume Code
-                    </button>
-                }
-                {previousStateStatus === 'review' &&
-                    <button onClick={handleAction} className="bg-brand-subtle hover:opacity-90 transition-opacity text-white font-bold py-4 px-8 rounded-lg text-2xl flex items-center justify-center">
-                        Review Last Code
-                    </button>
-                }
+                <button 
+                    onClick={handleAction} 
+                    disabled={!hasPreviousSession}
+                    className={`${buttonColor} hover:opacity-90 transition-opacity text-white font-bold py-4 px-8 rounded-lg text-2xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-brand-subtle`}
+                >
+                    {buttonText}
+                </button>
             </div>
-            {(previousStateStatus === 'active' || previousStateStatus === 'review') && 
+            {hasPreviousSession && 
                 <p className="text-sm text-slate-500 mt-4">A previous session is available. Starting a new code will clear it.</p>
             }
         </div>

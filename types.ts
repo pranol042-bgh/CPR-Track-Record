@@ -20,7 +20,7 @@ export interface EventLogItem {
 export interface MedicationPrefill {
   name: string;
   dose: string;
-  eventType: EventType.EPINEPHRINE_ADMINISTERED | EventType.AMIODARONE_ADMINISTERED;
+  eventType: EventType.EPINEPHRINE_ADMINISTERED | EventType.AMIODARONE_ADMINISTERED | EventType.OTHER_MEDICATION;
 }
 
 export interface ModalState {
@@ -59,7 +59,7 @@ export type Action =
   | { type: 'END_CODE' }
   | { type: 'RESET_APP' }
   | { type: 'TICK' }
-  | { type: 'LOG_EVENT'; payload: { type: EventType; details?: string; actor?: string } }
+  | { type: 'LOG_EVENT'; payload: { type: EventType; details?: string; actor?: string; medicationName?: string } }
   | { type: 'DISMISS_RHYTHM_ALERT' }
   | { type: 'DISMISS_PREPARE_EPI_ALERT' }
   | { type: 'OPEN_MODAL'; payload: { type: 'shock' | 'medication'; prefill?: MedicationPrefill } }
