@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CPR Track Record</title>
+    <title>BPK CPR Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -20,6 +20,15 @@
               'brand-accent-purple': '#9333ea', // purple-500
               'brand-accent-red': '#dc2626', // red-600
             },
+            keyframes: {
+                'fade-in': {
+                    '0%': { opacity: '0', transform: 'scale(0.95)' },
+                    '100%': { opacity: '1', transform: 'scale(1)' },
+                },
+            },
+            animation: {
+                'fade-in': 'fade-in 0.2s ease-out forwards',
+            }
           },
         },
       }
@@ -29,7 +38,8 @@
   "imports": {
     "react/": "https://esm.sh/react@^19.1.1/",
     "react": "https://esm.sh/react@^19.1.1",
-    "react-dom/": "https://esm.sh/react-dom@^19.1.1/"
+    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0"
   }
 }
 </script>
